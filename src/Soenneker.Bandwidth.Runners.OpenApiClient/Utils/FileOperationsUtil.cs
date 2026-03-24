@@ -125,7 +125,7 @@ public sealed class FileOperationsUtil : IFileOperationsUtil
             return discoveredOpenApiLinks;
         }
 
-        throw new Exception("Could not find any OpenApi spec files, exiting..");
+        throw new InvalidOperationException("Could not discover any Bandwidth OpenAPI spec files. The Bandwidth docs crawl may have returned no API/spec links, or Bandwidth:ClientGenerationUrl may need to be configured.");
     }
 
     private async ValueTask<List<string>> ConvertDownloadedOpenApiFilesToJson(string sourceDirectory, string targetDirectory, List<string> downloadedFilePaths,

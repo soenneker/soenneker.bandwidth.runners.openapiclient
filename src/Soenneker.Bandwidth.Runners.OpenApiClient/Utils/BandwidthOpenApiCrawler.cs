@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -22,6 +24,8 @@ public sealed class BandwidthOpenApiCrawler : IBandwidthOpenApiCrawler
     private const int _navigationTimeoutMs = 30_000;
 
     private static readonly Uri _baseUri = new(_startUrl);
+    private static readonly HttpClient _httpClient = new();
+    private static readonly Regex _hrefRegex = new("""href\s*=\s*["'](?<href>[^"']+)["']""", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private readonly ILogger<BandwidthOpenApiCrawler> _logger;
     private readonly IPlaywrightInstallationUtil _playwrightInstallationUtil;
@@ -103,7 +107,10 @@ public sealed class BandwidthOpenApiCrawler : IBandwidthOpenApiCrawler
                 if (!await TryNavigate(page, currentUrl).ConfigureAwait(false))
                     continue;
 
-                IReadOnlyList<string> hrefs = await GetAllAnchorHrefs(page).ConfigureAwait(false);
+                IReadOnlyList<string> hrefs = await GetAnchorHrefs(page, currentUrl, cancellationToken).ConfigureAwait(false);
+                int discoveredChildPagesForCurrentPage = 0;
+
+                _logger.LogDebug("Found {HrefCount} anchor hrefs on {PageUrl}", hrefs.Count, currentUrl);
 
                 foreach (string href in hrefs)
                 {
@@ -115,6 +122,7 @@ public sealed class BandwidthOpenApiCrawler : IBandwidthOpenApiCrawler
                     if (IsBandwidthApisPage(normalized) && queued.Add(normalized))
                     {
                         queue.Enqueue(normalized);
+                        discoveredChildPagesForCurrentPage++;
                         _logger.LogInformation("Queued child API page: {Url}", normalized);
                         continue;
                     }
@@ -123,6 +131,11 @@ public sealed class BandwidthOpenApiCrawler : IBandwidthOpenApiCrawler
                     {
                         _logger.LogInformation("Found OpenAPI spec directly in anchors: {SpecLink} (from {PageUrl})", normalized, currentUrl);
                     }
+                }
+
+                if (string.Equals(currentUrl, _startUrl, StringComparison.OrdinalIgnoreCase) && discoveredChildPagesForCurrentPage == 0)
+                {
+                    _logger.LogWarning("The root Bandwidth API page did not expose any child API links during crawling.");
                 }
 
                 if (!IsLikelyLeafApiPage(currentUrl))
@@ -169,8 +182,20 @@ public sealed class BandwidthOpenApiCrawler : IBandwidthOpenApiCrawler
                       })
                       .ConfigureAwait(false);
 
-            await page.WaitForLoadStateAsync(LoadState.NetworkIdle).ConfigureAwait(false);
-            await page.WaitForTimeoutAsync(500).ConfigureAwait(false);
+            try
+            {
+                await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new PageWaitForLoadStateOptions
+                      {
+                          Timeout = 5_000
+                      })
+                      .ConfigureAwait(false);
+            }
+            catch (TimeoutException)
+            {
+                _logger.LogDebug("Timed out waiting for network idle on {Url}; continuing with rendered DOM.", url);
+            }
+
+            await page.WaitForTimeoutAsync(1_000).ConfigureAwait(false);
 
             return true;
         }
@@ -294,26 +319,76 @@ public sealed class BandwidthOpenApiCrawler : IBandwidthOpenApiCrawler
                url.Contains("hotjar", StringComparison.OrdinalIgnoreCase);
     }
 
+    private async Task<IReadOnlyList<string>> GetAnchorHrefs(IPage page, string currentUrl, CancellationToken cancellationToken)
+    {
+        IReadOnlyList<string> hrefs = await GetAllAnchorHrefs(page).ConfigureAwait(false);
+
+        if (hrefs.Count > 0)
+            return hrefs;
+
+        _logger.LogDebug("Playwright returned no anchor hrefs for {PageUrl}. Falling back to raw HTML parsing.", currentUrl);
+
+        IReadOnlyList<string> fallbackHrefs = await GetAnchorHrefsFromHtml(currentUrl, cancellationToken).ConfigureAwait(false);
+
+        if (fallbackHrefs.Count > 0)
+        {
+            _logger.LogDebug("Recovered {HrefCount} anchor hrefs from raw HTML for {PageUrl}", fallbackHrefs.Count, currentUrl);
+        }
+
+        return fallbackHrefs;
+    }
+
     private static async Task<IReadOnlyList<string>> GetAllAnchorHrefs(IPage page)
     {
-        IReadOnlyList<string?> hrefs = await page.Locator("a[href]")
-                                                 .EvaluateAllAsync<string?[]>("""
-                                                                              elements => elements.map(e => e.getAttribute("href"))
-                                                                              """)
-                                                 .ConfigureAwait(false);
+        var results = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        if (hrefs.Count == 0)
+        foreach (IFrame frame in page.Frames)
+        {
+            IReadOnlyList<string?> hrefs = await frame.Locator("a[href]")
+                                                      .EvaluateAllAsync<string?[]>("""
+                                                                                   elements => elements.map(e => e.getAttribute("href"))
+                                                                                   """)
+                                                      .ConfigureAwait(false);
+
+            foreach (string? href in hrefs)
+            {
+                if (!string.IsNullOrWhiteSpace(href))
+                    results.Add(href);
+            }
+        }
+
+        return results.Count == 0 ? Array.Empty<string>() : results.ToList();
+    }
+
+    private static async Task<IReadOnlyList<string>> GetAnchorHrefsFromHtml(string url, CancellationToken cancellationToken)
+    {
+        string html;
+
+        try
+        {
+            html = await _httpClient.GetStringAsync(url, cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            return Array.Empty<string>();
+        }
+
+        MatchCollection matches = _hrefRegex.Matches(html);
+
+        if (matches.Count == 0)
             return Array.Empty<string>();
 
-        var results = new List<string>(hrefs.Count);
+        var results = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (string? href in hrefs)
+        foreach (Match match in matches)
         {
+            string href = match.Groups["href"].Value;
+
             if (!string.IsNullOrWhiteSpace(href))
                 results.Add(href);
         }
 
-        return results;
+        return results.Count == 0 ? Array.Empty<string>() : results.ToList();
     }
 
     private static string? NormalizeUrl(string? href)
