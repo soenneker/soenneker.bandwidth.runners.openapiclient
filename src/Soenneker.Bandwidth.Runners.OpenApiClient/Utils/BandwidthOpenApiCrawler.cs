@@ -459,8 +459,26 @@ public sealed class BandwidthOpenApiCrawler : IBandwidthOpenApiCrawler
             return null;
         }
 
-        if (Uri.TryCreate(href, UriKind.Absolute, out Uri? absolute))
+        if (href.StartsWith("//", StringComparison.Ordinal))
+        {
+            if (Uri.TryCreate($"{_baseUri.Scheme}:{href}", UriKind.Absolute, out Uri? protocolRelative))
+                return protocolRelative.ToString();
+        }
+
+        // Root-relative and document-relative hrefs should be resolved against the docs host first.
+        // Parsing "/apis/..." as an absolute URI can produce a file:// URI, which breaks host checks.
+        if ((href.StartsWith('/', StringComparison.Ordinal) || href.StartsWith("./", StringComparison.Ordinal) || href.StartsWith("../", StringComparison.Ordinal)) &&
+            Uri.TryCreate(_baseUri, href, out Uri? relative))
+        {
+            return relative.ToString();
+        }
+
+        if (Uri.TryCreate(href, UriKind.Absolute, out Uri? absolute) &&
+            (absolute.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) ||
+             absolute.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)))
+        {
             return absolute.ToString();
+        }
 
         if (Uri.TryCreate(_baseUri, href, out Uri? combined))
             return combined.ToString();
