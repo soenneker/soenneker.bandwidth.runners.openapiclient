@@ -135,7 +135,37 @@ public sealed class BandwidthOpenApiCrawler : IBandwidthOpenApiCrawler
 
                 if (string.Equals(currentUrl, _startUrl, StringComparison.OrdinalIgnoreCase) && discoveredChildPagesForCurrentPage == 0)
                 {
-                    _logger.LogWarning("The root Bandwidth API page did not expose any child API links during crawling.");
+                    IReadOnlyList<string> rootTileHrefs = await GetKnownRootApiTileHrefs(page).ConfigureAwait(false);
+
+                    foreach (string href in rootTileHrefs)
+                    {
+                        string? normalized = NormalizeUrl(href);
+
+                        if (normalized is null || !IsBandwidthApisPage(normalized) || !queued.Add(normalized))
+                            continue;
+
+                        queue.Enqueue(normalized);
+                        discoveredChildPagesForCurrentPage++;
+                        _logger.LogInformation("Queued child API page from explicit root tile selector: {Url}", normalized);
+                    }
+
+                    if (discoveredChildPagesForCurrentPage == 0)
+                    {
+                        string[] rawApiCandidates = hrefs.Where(static href => href.Contains("/apis/", StringComparison.OrdinalIgnoreCase))
+                                                         .Take(10)
+                                                         .ToArray();
+
+                        string[] normalizedApiCandidates = hrefs.Select(NormalizeUrl)
+                                                                .OfType<string>()
+                                                                .Where(IsBandwidthApisPage)
+                                                                .Take(10)
+                                                                .ToArray();
+
+                        _logger.LogWarning(
+                            "The root Bandwidth API page did not expose any child API links during crawling. Sample raw API-like hrefs: {RawApiCandidates}. Sample normalized API page candidates: {NormalizedApiCandidates}.",
+                            rawApiCandidates,
+                            normalizedApiCandidates);
+                    }
                 }
 
                 if (!IsLikelyLeafApiPage(currentUrl))
@@ -280,6 +310,28 @@ public sealed class BandwidthOpenApiCrawler : IBandwidthOpenApiCrawler
         }
 
         return null;
+    }
+
+    private static async Task<IReadOnlyList<string>> GetKnownRootApiTileHrefs(IPage page)
+    {
+        var results = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (IFrame frame in page.Frames)
+        {
+            IReadOnlyList<string?> hrefs = await frame.Locator("a.item-grid-item[href], a[data-cy][href]")
+                                                      .EvaluateAllAsync<string?[]>("""
+                                                                                   elements => elements.map(e => e.getAttribute("href"))
+                                                                                   """)
+                                                      .ConfigureAwait(false);
+
+            foreach (string? href in hrefs)
+            {
+                if (!string.IsNullOrWhiteSpace(href))
+                    results.Add(href);
+            }
+        }
+
+        return results.Count == 0 ? Array.Empty<string>() : results.ToList();
     }
 
     private static async Task ConfigureRequestBlocking(IBrowserContext context)
