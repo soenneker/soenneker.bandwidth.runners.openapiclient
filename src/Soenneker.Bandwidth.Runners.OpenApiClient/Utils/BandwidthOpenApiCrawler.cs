@@ -467,7 +467,7 @@ public sealed class BandwidthOpenApiCrawler : IBandwidthOpenApiCrawler
 
         // Root-relative and document-relative hrefs should be resolved against the docs host first.
         // Parsing "/apis/..." as an absolute URI can produce a file:// URI, which breaks host checks.
-        if ((href.StartsWith('/', StringComparison.Ordinal) || href.StartsWith("./", StringComparison.Ordinal) || href.StartsWith("../", StringComparison.Ordinal)) &&
+        if ((href.StartsWith("/", StringComparison.Ordinal) || href.StartsWith("./", StringComparison.Ordinal) || href.StartsWith("../", StringComparison.Ordinal)) &&
             Uri.TryCreate(_baseUri, href, out Uri? relative))
         {
             return relative.ToString();
