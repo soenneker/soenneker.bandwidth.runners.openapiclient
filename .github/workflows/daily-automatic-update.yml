@@ -4,6 +4,8 @@ on:
     - cron: "0 17 * * *"
   workflow_dispatch:
   push:
+    branches:
+      - main
     paths:
       - 'src/**'
 
