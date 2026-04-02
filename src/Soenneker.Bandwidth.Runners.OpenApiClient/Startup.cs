@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Soenneker.Kiota.Util.Registrars;
 using Soenneker.Managers.Runners.Registrars;
 using Soenneker.Bandwidth.Runners.OpenApiClient.Utils;
 using Soenneker.Bandwidth.Runners.OpenApiClient.Utils.Abstract;
@@ -31,7 +32,8 @@ public static class Startup
                 .AddOpenApiMergerAsScoped()
                 .AddPlaywrightInstallationUtilAsScoped()
                 .AddYamlUtilAsScoped()
-                .AddOpenApiFixerAsScoped();
+                .AddOpenApiFixerAsScoped()
+                .AddKiotaUtilAsScoped();
 
         return services;
     }
