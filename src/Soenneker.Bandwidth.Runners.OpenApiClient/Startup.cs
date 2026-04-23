@@ -25,15 +25,15 @@ public static class Startup
     public static IServiceCollection SetupIoC(this IServiceCollection services)
     {
         services.AddHostedService<ConsoleHostedService>()
-                .AddScoped<IBandwidthOpenApiCrawler, BandwidthOpenApiCrawler>()
-                .AddScoped<IFileOperationsUtil, FileOperationsUtil>()
-                .AddRunnersManagerAsScoped()
-                .AddFileDownloadUtilAsScoped()
-                .AddOpenApiMergerAsScoped()
-                .AddPlaywrightInstallationUtilAsScoped()
-                .AddYamlUtilAsScoped()
-                .AddOpenApiFixerAsScoped()
-                .AddKiotaUtilAsScoped();
+                .AddSingleton<IBandwidthOpenApiCrawler, BandwidthOpenApiCrawler>()
+                .AddSingleton<IFileOperationsUtil, FileOperationsUtil>()
+                .AddRunnersManagerAsSingleton()
+                .AddFileDownloadUtilAsSingleton()
+                .AddOpenApiMergerAsSingleton()
+                .AddPlaywrightInstallationUtilAsSingleton()
+                .AddYamlUtilAsSingleton()
+                .AddOpenApiFixerAsSingleton()
+                .AddKiotaUtilAsSingleton();
 
         return services;
     }
