@@ -29,7 +29,7 @@
         <PackageReference Include="Soenneker.OpenApi.Fixer" Version="4.0.227" />
         <PackageReference Include="Soenneker.OpenApi.Merger" Version="4.0.24" />
         <PackageReference Include="Soenneker.Playwright.Installation" Version="4.0.249" />
-        <PackageReference Include="Soenneker.Playwrights.Extensions.Stealth" Version="4.0.69" />
+        <PackageReference Include="Soenneker.Playwrights.Extensions.Stealth" Version="4.0.74" />
         <PackageReference Include="Soenneker.Utils.File.Download" Version="4.0.1561" />
         <PackageReference Include="Soenneker.Utils.Yaml" Version="4.0.54" />
     </ItemGroup>
