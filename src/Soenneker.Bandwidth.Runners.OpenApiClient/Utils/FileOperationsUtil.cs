@@ -42,9 +42,9 @@ public sealed class FileOperationsUtil : IFileOperationsUtil
     private readonly IYamlUtil _yamlUtil;
     private readonly IOpenApiFixer _openApiFixer;
 
-    public FileOperationsUtil(ILogger<FileOperationsUtil> logger, IConfiguration configuration, IGitUtil gitUtil, IDotnetUtil dotnetUtil, IProcessUtil processUtil,
-        IFileDownloadUtil fileDownloadUtil, IFileUtil fileUtil, IDirectoryUtil directoryUtil, IBandwidthOpenApiCrawler bandwidthOpenApiCrawler,
-        IOpenApiMerger openApiMerger, IYamlUtil yamlUtil, IOpenApiFixer openApiFixer, IKiotaUtil kiotaUtil)
+    public FileOperationsUtil(ILogger<FileOperationsUtil> logger, IConfiguration configuration, IGitUtil gitUtil, IDotnetUtil dotnetUtil,
+        IProcessUtil processUtil, IFileDownloadUtil fileDownloadUtil, IFileUtil fileUtil, IDirectoryUtil directoryUtil,
+        IBandwidthOpenApiCrawler bandwidthOpenApiCrawler, IOpenApiMerger openApiMerger, IYamlUtil yamlUtil, IOpenApiFixer openApiFixer, IKiotaUtil kiotaUtil)
     {
         _logger = logger;
         _configuration = configuration;
@@ -63,7 +63,8 @@ public sealed class FileOperationsUtil : IFileOperationsUtil
 
     public async ValueTask Process(CancellationToken cancellationToken = default)
     {
-        string gitDirectory = await _gitUtil.CloneToTempDirectory($"https://github.com/soenneker/{Constants.Library.ToLowerInvariantFast()}", cancellationToken: cancellationToken);
+        string gitDirectory = await _gitUtil.CloneToTempDirectory($"https://github.com/soenneker/{Constants.Library.ToLowerInvariantFast()}",
+            cancellationToken: cancellationToken);
 
         string openApiFilePath = Path.Combine(gitDirectory, "openapi.json");
         string downloadedOpenApiDirectory = Path.Combine(gitDirectory, "openapi");
@@ -77,16 +78,19 @@ public sealed class FileOperationsUtil : IFileOperationsUtil
         await _fileUtil.DeleteAll(downloadedJsonOpenApiDirectory, true, cancellationToken);
 
         List<string> openApiDocumentUris = await GetOpenApiDocumentUris(cancellationToken).ConfigureAwait(false);
-        List<string> downloadedFilePaths = await _fileDownloadUtil.DownloadMultiple(downloadedOpenApiDirectory, openApiDocumentUris, 4, cancellationToken)
-                                                                  .ConfigureAwait(false);
+        List<string> downloadedFilePaths = await _fileDownloadUtil
+                                                 .DownloadMultiple(downloadedOpenApiDirectory, openApiDocumentUris, 4, cancellationToken: cancellationToken)
+                                                 .ConfigureAwait(false);
 
         if (downloadedFilePaths.Count == 0)
             throw new InvalidOperationException("No Bandwidth OpenAPI documents were downloaded.");
 
-        List<string> jsonFilePaths = await ConvertDownloadedOpenApiFilesToJson(downloadedOpenApiDirectory, downloadedJsonOpenApiDirectory, downloadedFilePaths, cancellationToken)
-            .ConfigureAwait(false);
+        List<string> jsonFilePaths =
+            await ConvertDownloadedOpenApiFilesToJson(downloadedOpenApiDirectory, downloadedJsonOpenApiDirectory, downloadedFilePaths, cancellationToken)
+                .ConfigureAwait(false);
 
-        _logger.LogInformation("Downloaded {DownloadCount} Bandwidth OpenAPI documents and converted {JsonCount} documents to JSON. Merging into a single OpenAPI document...",
+        _logger.LogInformation(
+            "Downloaded {DownloadCount} Bandwidth OpenAPI documents and converted {JsonCount} documents to JSON. Merging into a single OpenAPI document...",
             downloadedFilePaths.Count, jsonFilePaths.Count);
 
         OpenApiDocument mergedOpenApiDocument = await _openApiMerger.MergeDirectory(downloadedJsonOpenApiDirectory, cancellationToken).ConfigureAwait(false);
@@ -127,7 +131,8 @@ public sealed class FileOperationsUtil : IFileOperationsUtil
             return discoveredOpenApiLinks;
         }
 
-        throw new InvalidOperationException("Could not discover any Bandwidth OpenAPI spec files. The Bandwidth docs crawl may have returned no API/spec links, or Bandwidth:ClientGenerationUrl may need to be configured.");
+        throw new InvalidOperationException(
+            "Could not discover any Bandwidth OpenAPI spec files. The Bandwidth docs crawl may have returned no API/spec links, or Bandwidth:ClientGenerationUrl may need to be configured.");
     }
 
     private async ValueTask<List<string>> ConvertDownloadedOpenApiFilesToJson(string sourceDirectory, string targetDirectory, List<string> downloadedFilePaths,
