@@ -44,7 +44,7 @@ public sealed class FileOperationsUtil : IFileOperationsUtil
 
     public FileOperationsUtil(ILogger<FileOperationsUtil> logger, IConfiguration configuration, IGitUtil gitUtil, IDotnetUtil dotnetUtil,
         IProcessUtil processUtil, IFileDownloadUtil fileDownloadUtil, IFileUtil fileUtil, IDirectoryUtil directoryUtil,
-        IBandwidthOpenApiCrawler bandwidthOpenApiCrawler, IOpenApiMerger openApiMerger, IYamlUtil yamlUtil, IOpenApiFixer openApiFixer, IKiotaUtil kiotaUtil)
+        IBandwidthOpenApiCrawler bandwidthOpenApiCrawler, IOpenApiMerger openApiMerger, IYamlUtil yamlUtil, IKiotaUtil kiotaUtil, IOpenApiFixer openApiFixer)
     {
         _logger = logger;
         _configuration = configuration;
