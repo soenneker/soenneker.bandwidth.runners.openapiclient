@@ -32,7 +32,7 @@
         <PackageReference Include="Soenneker.Playwrights.Extensions.Stealth" Version="4.0.120" />
         <PackageReference Include="Soenneker.Utils.File.Download" Version="4.0.1695" />
         <PackageReference Include="Soenneker.Utils.Directory" Version="4.0.915" />
-        <PackageReference Include="Soenneker.Utils.File" Version="4.0.2245" />
+        <PackageReference Include="Soenneker.Utils.File" Version="4.0.2246" />
         <PackageReference Include="Soenneker.Utils.Yaml" Version="4.0.141" />
     </ItemGroup>
 </Project>
