@@ -7,6 +7,8 @@ using Soenneker.OpenApi.Fixer.Registrars;
 using Soenneker.OpenApi.Merger.Registrars;
 using Soenneker.Playwright.Installation.Registrars;
 using Soenneker.Utils.File.Download.Registrars;
+using Soenneker.Utils.Directory.Registrars;
+using Soenneker.Utils.File.Registrars;
 using Soenneker.Utils.Yaml.Registrars;
 
 namespace Soenneker.Bandwidth.Runners.OpenApiClient;
@@ -37,6 +39,8 @@ public static class Startup
                 .AddSingleton<IBandwidthOpenApiCrawler, BandwidthOpenApiCrawler>()
                 .AddSingleton<IFileOperationsUtil, FileOperationsUtil>()
                 .AddRunnersManagerAsSingleton()
+                .AddDirectoryUtilAsSingleton()
+                .AddFileUtilAsSingleton()
                 .AddFileDownloadUtilAsSingleton()
                 .AddOpenApiMergerAsSingleton()
                 .AddPlaywrightInstallationUtilAsSingleton()

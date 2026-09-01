@@ -11,6 +11,8 @@ using Microsoft.Playwright;
 using Soenneker.Bandwidth.Runners.OpenApiClient.Utils.Abstract;
 using Soenneker.Playwright.Installation.Abstract;
 using Soenneker.Playwrights.Extensions.Stealth;
+using Soenneker.Utils.Directory.Abstract;
+using Soenneker.Utils.File.Abstract;
 
 namespace Soenneker.Bandwidth.Runners.OpenApiClient.Utils;
 
@@ -29,11 +31,16 @@ public sealed class BandwidthOpenApiCrawler : IBandwidthOpenApiCrawler
 
     private readonly ILogger<BandwidthOpenApiCrawler> _logger;
     private readonly IPlaywrightInstallationUtil _playwrightInstallationUtil;
+    private readonly IDirectoryUtil _directoryUtil;
+    private readonly IFileUtil _fileUtil;
 
-    public BandwidthOpenApiCrawler(ILogger<BandwidthOpenApiCrawler> logger, IPlaywrightInstallationUtil playwrightInstallationUtil)
+    public BandwidthOpenApiCrawler(ILogger<BandwidthOpenApiCrawler> logger, IPlaywrightInstallationUtil playwrightInstallationUtil,
+        IDirectoryUtil directoryUtil, IFileUtil fileUtil)
     {
         _logger = logger;
         _playwrightInstallationUtil = playwrightInstallationUtil;
+        _directoryUtil = directoryUtil;
+        _fileUtil = fileUtil;
     }
 
     public async ValueTask<List<string>> GetOpenApiLinks(CancellationToken cancellationToken = default)
@@ -70,10 +77,9 @@ public sealed class BandwidthOpenApiCrawler : IBandwidthOpenApiCrawler
 
         string? directory = Path.GetDirectoryName(outputPath);
         if (!string.IsNullOrWhiteSpace(directory))
-            Directory.CreateDirectory(directory);
+            await _directoryUtil.Create(directory, log: false, cancellationToken).ConfigureAwait(false);
 
-        await File.WriteAllLinesAsync(outputPath, links, cancellationToken)
-                  .ConfigureAwait(false);
+        await _fileUtil.WriteAllLines(outputPath, links, log: false, cancellationToken).ConfigureAwait(false);
 
         return links;
     }
