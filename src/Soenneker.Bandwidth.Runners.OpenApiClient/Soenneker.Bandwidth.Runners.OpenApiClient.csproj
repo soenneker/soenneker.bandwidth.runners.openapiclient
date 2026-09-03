@@ -33,6 +33,6 @@
         <PackageReference Include="Soenneker.Utils.File.Download" Version="4.0.1695" />
         <PackageReference Include="Soenneker.Utils.Directory" Version="4.0.916" />
         <PackageReference Include="Soenneker.Utils.File" Version="4.0.2246" />
-        <PackageReference Include="Soenneker.Utils.Yaml" Version="4.0.141" />
+        <PackageReference Include="Soenneker.Utils.Yaml" Version="4.0.156" />
     </ItemGroup>
 </Project>
