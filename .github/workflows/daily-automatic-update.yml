@@ -10,11 +10,14 @@ env:
   GIT__TOKEN: ${{ secrets.GIT__TOKEN }}
   GIT__NAME: ${{ secrets.GIT__NAME }}
   GIT__EMAIL: ${{ secrets.GIT__EMAIL }}
-  NUGET__TOKEN: ${{ secrets.NUGET__TOKEN }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
 
@@ -58,5 +61,13 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release --no-restore
 
+      - name: Log in to NuGet
+        uses: NuGet/login@v1
+        id: nuget-login
+        with:
+          user: soenneker
+
       - name: Run
+        env:
+          NUGET__TOKEN: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
         run: dotnet run --project src/Soenneker.Bandwidth.Runners.OpenApiClient/Soenneker.Bandwidth.Runners.OpenApiClient.csproj --no-restore --verbosity normal --framework net10.0 -c Release
