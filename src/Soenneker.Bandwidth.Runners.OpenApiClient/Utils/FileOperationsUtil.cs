@@ -89,11 +89,34 @@ public sealed class FileOperationsUtil : IFileOperationsUtil
             await ConvertDownloadedOpenApiFilesToJson(downloadedOpenApiDirectory, downloadedJsonOpenApiDirectory, downloadedFilePaths, cancellationToken)
                 .ConfigureAwait(false);
 
+        // Product Settings references schemas from the legacy Numbers specification, which is not linked by the API index.
+        string? productSettingsUrl = openApiDocumentUris.FirstOrDefault(url =>
+            Path.GetFileName(new Uri(url).AbsolutePath).Equals("product-settings.yml", StringComparison.OrdinalIgnoreCase));
+        if (productSettingsUrl != null)
+        {
+            string dependencyUrl = new Uri(new Uri(productSettingsUrl), "numbers.yml").AbsoluteUri;
+            string dependencyPath = Path.Combine(downloadedOpenApiDirectory, "numbers.yml");
+            string? downloadedDependency = await _fileDownloadUtil.Download(dependencyUrl, dependencyPath,
+                fileExtension: ".yml", cancellationToken: cancellationToken);
+            if (downloadedDependency == null)
+                throw new InvalidOperationException($"Bandwidth schema dependency download failed: {dependencyUrl}");
+            await _yamlUtil.SaveAsJson(downloadedDependency, Path.Combine(downloadedJsonOpenApiDirectory, "numbers.yml"), true, cancellationToken);
+        }
+
+        string fixedSourceDirectory = await _directoryUtil.CreateTempDirectory(cancellationToken);
+        foreach (string jsonFilePath in jsonFilePaths)
+        {
+            string relativePath = Path.GetRelativePath(downloadedJsonOpenApiDirectory, jsonFilePath);
+            string fixedSourcePath = Path.Combine(fixedSourceDirectory, Path.ChangeExtension(relativePath, ".json"));
+            await _directoryUtil.Create(Path.GetDirectoryName(fixedSourcePath)!, false, cancellationToken);
+            await _openApiFixer.Fix(jsonFilePath, fixedSourcePath, cancellationToken).NoSync();
+        }
+
         _logger.LogInformation(
             "Downloaded {DownloadCount} Bandwidth OpenAPI documents and converted {JsonCount} documents to JSON. Merging into a single OpenAPI document...",
             downloadedFilePaths.Count, jsonFilePaths.Count);
 
-        OpenApiDocument mergedOpenApiDocument = await _openApiMerger.MergeDirectory(downloadedJsonOpenApiDirectory, cancellationToken).ConfigureAwait(false);
+        OpenApiDocument mergedOpenApiDocument = await _openApiMerger.MergeDirectory(fixedSourceDirectory, cancellationToken).ConfigureAwait(false);
         string mergedOpenApiJson = _openApiMerger.ToJson(mergedOpenApiDocument);
 
         await _fileUtil.Write(openApiFilePath, mergedOpenApiJson, true, cancellationToken).ConfigureAwait(false);
@@ -145,7 +168,8 @@ public sealed class FileOperationsUtil : IFileOperationsUtil
             cancellationToken.ThrowIfCancellationRequested();
 
             string relativePath = Path.GetRelativePath(sourceDirectory, downloadedFilePath);
-            string targetJsonPath = Path.Combine(targetDirectory, Path.ChangeExtension(relativePath, ".json"));
+            // Keep dependency filenames until the fixer has bundled their external references.
+            string targetJsonPath = Path.Combine(targetDirectory, relativePath);
             string? targetJsonDirectory = Path.GetDirectoryName(targetJsonPath);
 
             if (!string.IsNullOrWhiteSpace(targetJsonDirectory))
