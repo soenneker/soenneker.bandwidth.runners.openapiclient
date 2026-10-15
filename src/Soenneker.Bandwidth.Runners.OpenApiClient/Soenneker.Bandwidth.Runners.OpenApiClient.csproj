@@ -23,20 +23,20 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Soenneker.Extensions.LoggerConfiguration" Version="4.0.1418" />
+        <PackageReference Include="Soenneker.Extensions.LoggerConfiguration" Version="4.0.1442" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.13" />
-        <PackageReference Include="Soenneker.Kiota.Util" Version="4.0.144" />
-        <PackageReference Include="Soenneker.Managers.Runners" Version="4.0.2607" />
-        <PackageReference Include="Soenneker.OpenApi.Fixer" Version="4.0.380" />
-        <PackageReference Include="Soenneker.OpenApi.Merger" Version="4.0.207" />
+        <PackageReference Include="Soenneker.Kiota.Util" Version="4.0.165" />
+        <PackageReference Include="Soenneker.Managers.Runners" Version="4.0.2639" />
+        <PackageReference Include="Soenneker.OpenApi.Fixer" Version="4.0.396" />
+        <PackageReference Include="Soenneker.OpenApi.Merger" Version="4.0.225" />
         <PackageReference Include="Soenneker.Playwright.Installation" Version="4.0.249" />
-        <PackageReference Include="Soenneker.Playwrights.Extensions.Stealth" Version="4.0.157" />
-        <PackageReference Include="Soenneker.Utils.File.Download" Version="4.0.1792" />
+        <PackageReference Include="Soenneker.Playwrights.Extensions.Stealth" Version="4.0.182" />
+        <PackageReference Include="Soenneker.Utils.File.Download" Version="4.0.1820" />
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Soenneker.Enums.DeployEnvironment" Version="4.0.260" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Soenneker.Extensions.ValueTask" Version="4.0.125" />
+        <PackageReference Include="Soenneker.Extensions.ValueTask" Version="4.0.133" />
     </ItemGroup>
 </Project>
