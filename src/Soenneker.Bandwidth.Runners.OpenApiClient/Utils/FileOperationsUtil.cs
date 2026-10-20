@@ -20,6 +20,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -106,6 +107,7 @@ public sealed class FileOperationsUtil : IFileOperationsUtil
         string fixedSourceDirectory = await _directoryUtil.CreateTempDirectory(cancellationToken);
         foreach (string jsonFilePath in jsonFilePaths)
         {
+            await RepairPortInSubscriberSchema(jsonFilePath, cancellationToken);
             string relativePath = Path.GetRelativePath(downloadedJsonOpenApiDirectory, jsonFilePath);
             string fixedSourcePath = Path.Combine(fixedSourceDirectory, Path.ChangeExtension(relativePath, ".json"));
             await _directoryUtil.Create(Path.GetDirectoryName(fixedSourcePath)!, false, cancellationToken);
@@ -134,6 +136,21 @@ public sealed class FileOperationsUtil : IFileOperationsUtil
         await _kiotaUtil.Generate(fixedFilePath, "BandwidthOpenApiClient", Constants.Library, gitDirectory, cancellationToken).NoSync();
 
         await BuildAndPush(gitDirectory, cancellationToken).NoSync();
+    }
+
+    private async ValueTask RepairPortInSubscriberSchema(string path, CancellationToken cancellationToken)
+    {
+        JsonNode? document = JsonNode.Parse(await _fileUtil.Read(path, cancellationToken: cancellationToken));
+        if (document?["components"]?["schemas"]?["subscriber"] is not JsonObject subscriber ||
+            subscriber["properties"] is not JsonObject properties ||
+            properties["type"] is not JsonValue value || !value.TryGetValue(out string? type) || type != "object" ||
+            subscriber["type"]?.GetValue<string>() != "object")
+            return;
+
+        // The upstream port-in schema duplicates its type inside properties as a scalar, which crashes the OpenAPI reader.
+        properties.Remove("type");
+        await _fileUtil.Write(path, document.ToJsonString(), cancellationToken: cancellationToken);
+        _logger.LogInformation("Removed misplaced subscriber type from {Path}", path);
     }
 
     private async ValueTask<List<string>> GetOpenApiDocumentUris(CancellationToken cancellationToken)
