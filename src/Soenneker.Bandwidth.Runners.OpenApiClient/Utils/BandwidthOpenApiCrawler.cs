@@ -108,7 +108,8 @@ public sealed class BandwidthOpenApiCrawler : IBandwidthOpenApiCrawler
                 if (!visited.Add(currentUrl))
                     continue;
 
-                _logger.LogInformation("Visiting {Url}", currentUrl);
+                if (_logger.IsEnabled(LogLevel.Information))
+                    _logger.LogInformation("Visiting {Url}", currentUrl);
 
                 if (!await TryNavigate(page, currentUrl).ConfigureAwait(false))
                     continue;
@@ -129,13 +130,15 @@ public sealed class BandwidthOpenApiCrawler : IBandwidthOpenApiCrawler
                     {
                         queue.Enqueue(normalized);
                         discoveredChildPagesForCurrentPage++;
-                        _logger.LogInformation("Queued child API page: {Url}", normalized);
+                        if (_logger.IsEnabled(LogLevel.Information))
+                            _logger.LogInformation("Queued child API page: {Url}", normalized);
                         continue;
                     }
 
                     if (IsOpenApiSpecLink(normalized) && discoveredSpecs.Add(normalized))
                     {
-                        _logger.LogInformation("Found OpenAPI spec directly in anchors: {SpecLink} (from {PageUrl})", normalized, currentUrl);
+                        if (_logger.IsEnabled(LogLevel.Information))
+                            _logger.LogInformation("Found OpenAPI spec directly in anchors: {SpecLink} (from {PageUrl})", normalized, currentUrl);
                     }
                 }
 
@@ -152,7 +155,8 @@ public sealed class BandwidthOpenApiCrawler : IBandwidthOpenApiCrawler
 
                         queue.Enqueue(normalized);
                         discoveredChildPagesForCurrentPage++;
-                        _logger.LogInformation("Queued child API page from explicit root tile selector: {Url}", normalized);
+                        if (_logger.IsEnabled(LogLevel.Information))
+                            _logger.LogInformation("Queued child API page from explicit root tile selector: {Url}", normalized);
                     }
 
                     if (discoveredChildPagesForCurrentPage == 0)
@@ -176,7 +180,8 @@ public sealed class BandwidthOpenApiCrawler : IBandwidthOpenApiCrawler
 
                 if (!IsLikelyLeafApiPage(currentUrl))
                 {
-                    _logger.LogDebug("Skipping spec extraction for non-leaf page: {PageUrl}", currentUrl);
+                    if (_logger.IsEnabled(LogLevel.Debug))
+                        _logger.LogDebug("Skipping spec extraction for non-leaf page: {PageUrl}", currentUrl);
                     continue;
                 }
 
@@ -186,11 +191,13 @@ public sealed class BandwidthOpenApiCrawler : IBandwidthOpenApiCrawler
                 {
                     if (discoveredSpecs.Add(specLink))
                     {
-                        _logger.LogInformation("✅ Found OpenAPI spec: {SpecLink} (from {PageUrl})", specLink, currentUrl);
+                        if (_logger.IsEnabled(LogLevel.Information))
+                            _logger.LogInformation("✅ Found OpenAPI spec: {SpecLink} (from {PageUrl})", specLink, currentUrl);
                     }
                     else
                     {
-                        _logger.LogDebug("Duplicate OpenAPI spec ignored: {SpecLink} (from {PageUrl})", specLink, currentUrl);
+                        if (_logger.IsEnabled(LogLevel.Debug))
+                            _logger.LogDebug("Duplicate OpenAPI spec ignored: {SpecLink} (from {PageUrl})", specLink, currentUrl);
                     }
                 }
                 else
@@ -228,7 +235,8 @@ public sealed class BandwidthOpenApiCrawler : IBandwidthOpenApiCrawler
             }
             catch (TimeoutException)
             {
-                _logger.LogDebug("Timed out waiting for network idle on {Url}; continuing with rendered DOM.", url);
+                if (_logger.IsEnabled(LogLevel.Debug))
+                    _logger.LogDebug("Timed out waiting for network idle on {Url}; continuing with rendered DOM.", url);
             }
 
             await page.WaitForTimeoutAsync(1_000).ConfigureAwait(false);
@@ -384,7 +392,8 @@ public sealed class BandwidthOpenApiCrawler : IBandwidthOpenApiCrawler
         if (hrefs.Count > 0)
             return hrefs;
 
-        _logger.LogDebug("Playwright returned no anchor hrefs for {PageUrl}. Falling back to raw HTML parsing.", currentUrl);
+        if (_logger.IsEnabled(LogLevel.Debug))
+            _logger.LogDebug("Playwright returned no anchor hrefs for {PageUrl}. Falling back to raw HTML parsing.", currentUrl);
 
         IReadOnlyList<string> fallbackHrefs = await GetAnchorHrefsFromHtml(currentUrl, cancellationToken).ConfigureAwait(false);
 
