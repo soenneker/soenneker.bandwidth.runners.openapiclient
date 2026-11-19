@@ -26,9 +26,9 @@
         <PackageReference Include="Soenneker.Extensions.LoggerConfiguration" Version="11.0.1473" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="11.0.0" />
         <PackageReference Include="Soenneker.Kiota.Util" Version="11.0.197" />
-        <PackageReference Include="Soenneker.Managers.Runners" Version="11.0.2743" />
-        <PackageReference Include="Soenneker.OpenApi.Fixer" Version="11.0.448" />
-        <PackageReference Include="Soenneker.OpenApi.Merger" Version="11.0.275" />
+        <PackageReference Include="Soenneker.Managers.Runners" Version="11.0.2745" />
+        <PackageReference Include="Soenneker.OpenApi.Fixer" Version="11.0.449" />
+        <PackageReference Include="Soenneker.OpenApi.Merger" Version="11.0.276" />
         <PackageReference Include="Soenneker.Playwright.Installation" Version="4.0.249" />
         <PackageReference Include="Soenneker.Playwrights.Extensions.Stealth" Version="11.0.208" />
         <PackageReference Include="Soenneker.Utils.File.Download" Version="11.0.1866" />
